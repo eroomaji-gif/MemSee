@@ -208,7 +208,7 @@ print("✅ UI Framework Loaded Successfully!")
 
 
 -- ==========================================
--- 🎯 ระบบล็อกเป้าคนใกล้ที่สุดแบบบังคับทิศทาง (ไม่สนนิ้วกดจอ)
+-- 🎯 ระบบกวาดหาเป้าหมายและทำเครื่องหมาย (Target Lock & Highlight)
 -- ==========================================
 local pvpPage = pages["PVP"]
 
@@ -220,88 +220,101 @@ if not pvpLayout then
     pvpLayout.Padding = UDim.new(0, 10)
 end
 
-local HardLockEnabled = false
+local TargetLockEnabled = false
+local currentHighlight = nil
 
-local HardLockToggleBtn = Instance.new("TextButton")
-HardLockToggleBtn.Name = "HardLockToggleBtn"
-HardLockToggleBtn.Parent = pvpPage
-HardLockToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-HardLockToggleBtn.Size = UDim2.new(1, -10, 0, 40)
-HardLockToggleBtn.Font = Enum.Font.GothamBold
-HardLockToggleBtn.Text = "🎯 บังคับล็อกเป้าทั่วเซิร์ฟ: ปิด"
-HardLockToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-HardLockToggleBtn.TextSize = 14
-HardLockToggleBtn.LayoutOrder = 1
+-- สร้างปุ่มเปิด/ปิดระบบ Target Lock
+local TargetToggleBtn = Instance.new("TextButton")
+TargetToggleBtn.Name = "TargetToggleBtn"
+TargetToggleBtn.Parent = pvpPage
+TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+TargetToggleBtn.Size = UDim2.new(1, -10, 0, 40)
+TargetToggleBtn.Font = Enum.Font.GothamBold
+TargetToggleBtn.Text = "🎯 ระบบล็อกเป้าคนใกล้สุด: ปิด"
+TargetToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetToggleBtn.TextSize = 14
+TargetToggleBtn.LayoutOrder = 1
 
-local HardLockCorner = Instance.new("UICorner")
-HardLockCorner.CornerRadius = UDim.new(0, 6)
-HardLockCorner.Parent = HardLockToggleBtn
+local TargetCorner = Instance.new("UICorner")
+TargetCorner.CornerRadius = UDim.new(0, 6)
+TargetCorner.Parent = TargetToggleBtn
 
--- ฟังก์ชันกวาดหาผู้เล่นทุกคนในเซิร์ฟเวอร์ และเลือกคนใกล้ที่สุด
-local function getAbsoluteClosestPlayer()
-    local targetPlayer = nil
-    local minDistance = math.huge
+-- ฟังก์ชันกวาดหาผู้เล่นที่อยู่ใกล้ที่สุดในเซิร์ฟเวอร์
+local function getClosestTarget()
+    local nearestPlayer = nil
+    local shortestDistance = math.huge
 
     local myChar = localPlayer.Character
-    if not myChar then return nil end
-    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil end
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    local myRoot = myChar.HumanoidRootPart
 
-    -- กวาดหารายชื่อผู้เล่นทุกคนในเซิร์ฟเวอร์แบบครบถ้วน
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= localPlayer and player.Character then
             local enemyChar = player.Character
             local enemyHumanoid = enemyChar:FindFirstChildOfClass("Humanoid")
             local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
             
-            -- เช็คว่าเป้าหมายมีชีวิตอยู่ และมีเลือดมากกว่า 0
             if enemyHumanoid and enemyHumanoid.Health > 0 and enemyRoot then
                 local distance = (enemyRoot.Position - myRoot.Position).Magnitude
-                if distance < minDistance then
-                    minDistance = distance
-                    targetPlayer = player
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestPlayer = player
                 end
             end
         end
     end
 
-    return targetPlayer
+    return nearestPlayer
 end
 
-HardLockToggleBtn.MouseButton1Click:Connect(function()
-    HardLockEnabled = not HardLockEnabled
-    if HardLockEnabled then
-        HardLockToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
-        HardLockToggleBtn.Text = "🎯 บังคับล็อกเป้าทั่วเซิร์ฟ: เปิด"
+TargetToggleBtn.MouseButton1Click:Connect(function()
+    TargetLockEnabled = not TargetLockEnabled
+    if TargetLockEnabled then
+        TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+        TargetToggleBtn.Text = "🎯 ระบบล็อกเป้าคนใกล้สุด: เปิด"
     else
-        HardLockToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-        HardLockToggleBtn.Text = "🎯 บังคับล็อกเป้าทั่วเซิร์ฟ: ปิด"
+        TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        TargetToggleBtn.Text = "🎯 ระบบล็อกเป้าคนใกล้สุด: ปิด"
+        -- ลบทิ้งเมื่อปิดการใช้งาน
+        if currentHighlight then
+            currentHighlight:Destroy()
+            currentHighlight = nil
+        end
     end
 end)
 
--- ทำงานแบบ Real-time บังคับทิศทางตัวละครและมุมมองข้ามการควบคุมของนิ้ว
+-- ลูปทำงานกวาดหาและสร้าง Highlight แสดงตัวเป้าหมาย
 RunService.RenderStepped:Connect(function()
-    if HardLockEnabled then
+    if TargetLockEnabled then
         pcall(function()
-            local target = getAbsoluteClosestPlayer()
+            local target = getClosestTarget()
             if target and target.Character then
-                local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-                local myChar = localPlayer.Character
-                
-                if targetRoot and myChar then
-                    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-                    if myRoot then
-                        -- 1. บังคับล็อกทิศทางตัวละคร (HumanoidRootPart) ให้หันหน้าเข้าหาเป้าหมายตลอดเวลา
-                        -- ทำให้เวลาปล่อยสกิล ทิศทางของสกิลจะพุ่งตรงไปหาคนนั้นทันทีโดยไม่สนว่านิ้วเราจะหันไปทางไหน
-                        myRoot.CFrame = CFrame.new(myRoot.Position, Vector3.new(targetRoot.Position.X, myRoot.Position.Y, targetRoot.Position.Z))
-                        
-                        -- 2. บังคับล็อกกล้องให้มองตรงไปที่เป้าหมายด้วย
-                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetRoot.Position)
-                    end
+                -- เช็คว่าเป้าหมายมี Highlight หรือยัง ถ้ายังให้สร้างอันใหม่ครอบไว้
+                if not currentHighlight or currentHighlight.Parent ~= target.Character then
+                    if currentHighlight then currentHighlight:Destroy() end
+                    
+                    currentHighlight = Instance.new("Highlight")
+                    currentHighlight.Name = "KTO_TargetHighlight"
+                    currentHighlight.Adornee = target.Character
+                    currentHighlight.FillColor = Color3.fromRGB(255, 0, 0) -- สีแดงเด่นชัด
+                    currentHighlight.FillTransparency = 0.5
+                    currentHighlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    currentHighlight.OutlineTransparency = 0
+                    currentHighlight.Parent = target.Character
+                end
+            else
+                if currentHighlight then
+                    currentHighlight:Destroy()
+                    currentHighlight = nil
                 end
             end
         end)
+    else
+        if currentHighlight then
+            currentHighlight:Destroy()
+            currentHighlight = nil
+        end
     end
 end)
 
-print("✅ Hard-Lock Target System Loaded!")
+print("✅ Target Lock & Highlight System Loaded!")
