@@ -1,36 +1,19 @@
--- 📌 [ระบบป้องกัน] รายชื่อเจ้าของสคริปต์
-local ProtectedOwners = {
-    "Onsenb47162",
-    "Agakami_5625",
-}
-
-local function isOwner(player)
-    if not player then return false end
-    for _, ownerName in ipairs(ProtectedOwners) do
-        if player.Name == ownerName or player.DisplayName == ownerName then
-            return true
-        end
-    end
-    return false
-end
-
 -- ==========================================
--- 📌 โครงสร้าง UI สำหรับ Mem See
+-- 📌 โครงสร้าง UI แบบหลายโหมด (Mem See Hub) - หน้าแรกเป็นหลัก
 -- ==========================================
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
-local RunService = game:GetService("RunService")
 
 -- ลบ UI เก่าทิ้งก่อน (ถ้ามี)
-local oldGui = playerGui:FindFirstChild("MemSeeMenuGui")
+local oldGui = playerGui:FindFirstChild("MultiModeMenuGui")
 if oldGui then
     oldGui:Destroy()
 end
 
 -- สร้าง ScreenGui หลัก
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MemSeeMenuGui"
+ScreenGui.Name = "MultiModeMenuGui"
 ScreenGui.Parent = playerGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -85,7 +68,7 @@ TitleBar.Parent = MainFrame
 TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.Font = Enum.Font.GothamBold
-TitleBar.Text = "  👁️ MEM SEE - Hub (By KTO)"
+TitleBar.Text = "  👁️ MEM SEE - Multi Mode Hub"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.TextSize = 15
 TitleBar.TextXAlignment = Enum.TextXAlignment.Left
@@ -133,49 +116,51 @@ SidebarLayout.Parent = SidebarFrame
 SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
 SidebarLayout.Padding = UDim.new(0, 8)
 
--- 3.2 พื้นที่แสดงปุ่มฟังก์ชันฝั่งขวา (Content Container)
-local ContentContainer = Instance.new("ScrollingFrame")
-ContentContainer.Name = "ContentContainer"
-ContentContainer.Parent = MainFrame
-ContentContainer.BackgroundTransparency = 1
-ContentContainer.Position = UDim2.new(0, 160, 0, 50)
-ContentContainer.Size = UDim2.new(1, -170, 1, -60)
-ContentContainer.CanvasSize = UDim2.new(0, 0, 0, 600)
-ContentContainer.ScrollBarThickness = 4
+-- 3.2 พื้นที่หน้าต่างหลักฝั่งขวา (Container สำหรับเปลี่ยนหน้า)
+local PagesContainer = Instance.new("Frame")
+PagesContainer.Name = "PagesContainer"
+PagesContainer.Parent = MainFrame
+PagesContainer.BackgroundTransparency = 1
+PagesContainer.Position = UDim2.new(0, 160, 0, 50)
+PagesContainer.Size = UDim2.new(1, -170, 1, -60)
 
-local ContentLayout = Instance.new("UIListLayout")
-ContentLayout.Parent = ContentContainer
-ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ContentLayout.Padding = UDim.new(0, 10)
+-- ฟังก์ชันสร้างหน้า (Page) แต่ละหมวด
+local function createPage(name)
+    local page = Instance.new("ScrollingFrame")
+    page.Name = name .. "Page"
+    page.Parent = PagesContainer
+    page.BackgroundTransparency = 1
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.CanvasSize = UDim2.new(0, 0, 0, 500)
+    page.ScrollBarThickness = 4
+    page.Visible = false
 
--- ฟังก์ชันสร้างปุ่มเมนูหมวดหมู่ฝั่งซ้าย
-local function createCategoryButton(name, order)
-    local btn = Instance.new("TextButton")
-    btn.Name = name .. "Btn"
-    btn.Parent = SidebarFrame
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.Font = Enum.Font.GothamSemibold
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
-    btn.LayoutOrder = order
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-    return btn
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = page
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 10)
+
+    return page
 end
 
--- ฟังก์ชันสร้างปุ่มกดเปิด/ปิดฟังก์ชันในฝั่งขวา
-local function createFeatureToggle(name, callback)
+-- สร้างหน้าทั้ง 6 ตามที่คุณต้องการ
+local pages = {
+    ["หน้าแรก"] = createPage("Home"),
+    ["หาของ"] = createPage("Farm"),
+    ["ทะเล"] = createPage("Sea"),
+    ["ลงดัน"] = createPage("Dungeon"),
+    ["PVP"] = createPage("PVP"),
+    ["ข้อมูล"] = createPage("Info")
+}
+
+-- ฟังก์ชันเพิ่มปุ่มกดในแต่ละหน้า
+local function addButtonToPage(page, text, callback)
     local btn = Instance.new("TextButton")
-    btn.Name = name .. "Toggle"
-    btn.Parent = ContentContainer
+    btn.Parent = page
     btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.Size = UDim2.new(1, -10, 0, 40)
     btn.Font = Enum.Font.Gotham
-    btn.Text = "  [ OFF ] " .. name
+    btn.Text = "  [ • ] " .. text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = 13
     btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -189,80 +174,121 @@ local function createFeatureToggle(name, callback)
         active = not active
         if active then
             btn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
-            btn.Text = "  [ ON ] " .. name
+            btn.Text = "  [ ON ] " .. text
         else
             btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            btn.Text = "  [ OFF ] " .. name
+            btn.Text = "  [ • ] " .. text
         end
-        callback(active)
+        if callback then callback(active) end
     end)
 end
 
--- สร้างปุ่มหมวดหมู่หลัก
-createCategoryButton("Main / Player", 1)
-createCategoryButton("Visuals (ESP)", 2)
-createCategoryButton("Mem See Misc", 3)
+-- ฟังก์ชันเพิ่มข้อความธรรมดา (สำหรับหน้าข้อมูล)
+local function addLabelToPage(page, text)
+    local lbl = Instance.new("TextLabel")
+    lbl.Parent = page
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, -10, 0, 30)
+    lbl.Font = Enum.Font.GothamSemibold
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    lbl.TextSize = 13
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+end
 
--- เพิ่มฟังก์ชันตัวอย่างสำหรับเกม Mem See
-createFeatureToggle("Speed Hack (เดินไว)", function(state)
-    task.spawn(function()
-        while state and task.wait() do
-            pcall(function()
-                local char = localPlayer.Character
-                if char and char:FindFirstChild("Humanoid") then
-                    if state then
-                        char.Humanoid.WalkSpeed = 24
-                    else
-                        char.Humanoid.WalkSpeed = 16
-                    end
-                end
-            end)
-        end
-        local char = localPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 16
-        end
-    end)
-end)
+-- ==========================================
+-- เติมฟังก์ชันตัวอย่างลงในแต่ละหมวด
+-- ==========================================
 
-createFeatureToggle("Fullbright (เร่งแสงสว่าง)", function(state)
+-- 1. หน้าแรก
+addButtonToPage(pages["หน้าแรก"], "เร่งแสงสว่าง (Fullbright)", function(state)
     local lighting = game:GetService("Lighting")
-    if state then
-        lighting.Brightness = 2
-        lighting.ClockTime = 14
-        lighting.GlobalShadows = false
-    else
-        lighting.Brightness = 1
-        lighting.GlobalShadows = true
+    lighting.Brightness = state and 2 or 1
+    lighting.GlobalShadows = not state
+end)
+addButtonToPage(pages["หน้าแรก"], "รีเซ็ตตัวละคร (Reset)", function()
+    local char = localPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.Health = 0
     end
 end)
 
-createFeatureToggle("ESP Players / Monsters", function(state)
-    -- ระบบ ESP สำหรับมองทะลุกำแพง (ผู้เล่นอื่น / มอนสเตอร์ใน Mem See)
-    local espFolder = workspace:FindFirstChild("ESP_Folder") or Instance.new("Folder", workspace)
-    espFolder.Name = "ESP_Folder"
-    
-    if state then
-        task.spawn(function()
-            while state and task.wait(1) do
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj ~= localPlayer.Character then
-                        if not obj:FindFirstChild("Highlight") then
-                            local hl = Instance.new("Highlight", obj)
-                            hl.FillColor = Color3.fromRGB(255, 0, 0)
-                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        end
-                    end
-                end
-            end
-        end)
-    else
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Highlight") and obj.Parent ~= localPlayer.Character then
-                obj:Destroy()
-            end
+-- 2. หาของ
+addButtonToPage(pages["หาของ"], "ออโต้ฟาร์มไอเทม / กล่อง", function(state)
+    print("Auto Farm Item: ", state)
+end)
+addButtonToPage(pages["หาของ"], "มองหาของดรอป (ESP Items)", function(state)
+    print("ESP Items: ", state)
+end)
+
+-- 3. ทะเล
+addButtonToPage(pages["ทะเล"], "เดินบนน้ำ (Water Walk)", function(state)
+    print("Water Walk: ", state)
+end)
+addButtonToPage(pages["ทะเล"], "ออโต้ฟาร์มเกาะ / เรือ", function(state)
+    print("Auto Sea Farm: ", state)
+end)
+
+-- 4. ลงดัน
+addButtonToPage(pages["ลงดัน"], "วาร์ปเข้าห้องดันเจี้ยนทันที", function()
+    print("Teleport to Dungeon")
+end)
+addButtonToPage(pages["ลงดัน"], "ออโต้ตีบอสในดัน", function(state)
+    print("Auto Dungeon Boss: ", state)
+end)
+
+-- 5. PVP
+addButtonToPage(pages["PVP"], "ล็อคเป้าผู้เล่น (Aimbot)", function(state)
+    print("Aimbot: ", state)
+end)
+addButtonToPage(pages["PVP"], "มองทะลุกำแพงผู้เล่น (ESP Player)", function(state)
+    print("ESP Player: ", state)
+end)
+
+-- 6. ข้อมูล
+addLabelToPage(pages["ข้อมูล"], "ผู้ใช้งาน: " .. localPlayer.Name)
+addLabelToPage(pages["ข้อมูล"], "สถานะระบบ: ปกติ (Active)")
+addLabelToPage(pages["ข้อมูล"], "Script Hub Version: 2.0")
+
+-- ==========================================
+-- สร้างปุ่มเมนูด้านซ้าย และระบบสลับหน้าจอ
+-- ==========================================
+local categoryNames = {"หน้าแรก", "หาของ", "ทะเล", "ลงดัน", "PVP", "ข้อมูล"}
+local sidebarButtons = {}
+
+for i, catName in ipairs(categoryNames) do
+    local btn = Instance.new("TextButton")
+    btn.Name = catName .. "Btn"
+    btn.Parent = SidebarFrame
+    -- ให้ปุ่ม "หน้าแรก" มีสีเด่นกว่าตอนเริ่มต้น
+    btn.BackgroundColor3 = (catName == "หน้าแรก") and Color3.fromRGB(60, 120, 200) or Color3.fromRGB(45, 45, 45)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = catName
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.LayoutOrder = i
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    sidebarButtons[catName] = btn
+
+    -- ระบบกดเปลี่ยนหน้า
+    btn.MouseButton1Click:Connect(function()
+        -- ซ่อนทุกหน้า และปรับสีปุ่มซ้ายทั้งหมดให้เป็นปกติ
+        for name, p in pairs(pages) do
+            p.Visible = false
+            sidebarButtons[name].BackgroundColor3 = Color3.fromRGB(45, 45, 45)
         end
-    end
-end)
+        -- แสดงเฉพาะหน้าที่เลือก และเปลี่ยนสีปุ่มให้เด่นขึ้น
+        pages[catName].Visible = true
+        btn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+    end)
+end
 
-print("✅ Mem See Hub Loaded Successfully!")
+-- ตั้งค่าให้ "หน้าแรก" เปิดแสดงผลเป็นหน้าหลักทันที
+pages["หน้าแรก"].Visible = true
+
+print("✅ Mem See Hub Loaded (Home Page Default) Successfully!")
