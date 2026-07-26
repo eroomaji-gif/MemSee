@@ -1,5 +1,5 @@
 -- ==========================================
--- 📌 โครงสร้าง UI แบบหลายโหมด (Mem See Hub) - หน้าแรกเป็นหลัก
+-- 📌 โครงสร้าง UI (เฉพาะแถบซ้าย + ระบบเปลี่ยนหน้าเปล่าๆ)
 -- ==========================================
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
@@ -116,7 +116,7 @@ SidebarLayout.Parent = SidebarFrame
 SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
 SidebarLayout.Padding = UDim.new(0, 8)
 
--- 3.2 พื้นที่หน้าต่างหลักฝั่งขวา (Container สำหรับเปลี่ยนหน้า)
+-- 3.2 พื้นที่หน้าต่างหลักฝั่งขวา (Container สำหรับหน้าเปล่าๆ)
 local PagesContainer = Instance.new("Frame")
 PagesContainer.Name = "PagesContainer"
 PagesContainer.Parent = MainFrame
@@ -124,7 +124,7 @@ PagesContainer.BackgroundTransparency = 1
 PagesContainer.Position = UDim2.new(0, 160, 0, 50)
 PagesContainer.Size = UDim2.new(1, -170, 1, -60)
 
--- ฟังก์ชันสร้างหน้า (Page) แต่ละหมวด
+-- ฟังก์ชันสร้างหน้า (Page) แบบว่างเปล่า
 local function createPage(name)
     local page = Instance.new("ScrollingFrame")
     page.Name = name .. "Page"
@@ -143,7 +143,7 @@ local function createPage(name)
     return page
 end
 
--- สร้างหน้าทั้ง 6 ตามที่คุณต้องการ
+-- สร้างหน้าทั้ง 6 หน้าแบบโล่งๆ
 local pages = {
     ["หน้าแรก"] = createPage("Home"),
     ["หาของ"] = createPage("Farm"),
@@ -152,103 +152,6 @@ local pages = {
     ["PVP"] = createPage("PVP"),
     ["ข้อมูล"] = createPage("Info")
 }
-
--- ฟังก์ชันเพิ่มปุ่มกดในแต่ละหน้า
-local function addButtonToPage(page, text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Parent = page
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.Size = UDim2.new(1, -10, 0, 40)
-    btn.Font = Enum.Font.Gotham
-    btn.Text = "  [ • ] " .. text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-
-    local active = false
-    btn.MouseButton1Click:Connect(function()
-        active = not active
-        if active then
-            btn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
-            btn.Text = "  [ ON ] " .. text
-        else
-            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            btn.Text = "  [ • ] " .. text
-        end
-        if callback then callback(active) end
-    end)
-end
-
--- ฟังก์ชันเพิ่มข้อความธรรมดา (สำหรับหน้าข้อมูล)
-local function addLabelToPage(page, text)
-    local lbl = Instance.new("TextLabel")
-    lbl.Parent = page
-    lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1, -10, 0, 30)
-    lbl.Font = Enum.Font.GothamSemibold
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-    lbl.TextSize = 13
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-end
-
--- ==========================================
--- เติมฟังก์ชันตัวอย่างลงในแต่ละหมวด
--- ==========================================
-
--- 1. หน้าแรก
-addButtonToPage(pages["หน้าแรก"], "เร่งแสงสว่าง (Fullbright)", function(state)
-    local lighting = game:GetService("Lighting")
-    lighting.Brightness = state and 2 or 1
-    lighting.GlobalShadows = not state
-end)
-addButtonToPage(pages["หน้าแรก"], "รีเซ็ตตัวละคร (Reset)", function()
-    local char = localPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.Health = 0
-    end
-end)
-
--- 2. หาของ
-addButtonToPage(pages["หาของ"], "ออโต้ฟาร์มไอเทม / กล่อง", function(state)
-    print("Auto Farm Item: ", state)
-end)
-addButtonToPage(pages["หาของ"], "มองหาของดรอป (ESP Items)", function(state)
-    print("ESP Items: ", state)
-end)
-
--- 3. ทะเล
-addButtonToPage(pages["ทะเล"], "เดินบนน้ำ (Water Walk)", function(state)
-    print("Water Walk: ", state)
-end)
-addButtonToPage(pages["ทะเล"], "ออโต้ฟาร์มเกาะ / เรือ", function(state)
-    print("Auto Sea Farm: ", state)
-end)
-
--- 4. ลงดัน
-addButtonToPage(pages["ลงดัน"], "วาร์ปเข้าห้องดันเจี้ยนทันที", function()
-    print("Teleport to Dungeon")
-end)
-addButtonToPage(pages["ลงดัน"], "ออโต้ตีบอสในดัน", function(state)
-    print("Auto Dungeon Boss: ", state)
-end)
-
--- 5. PVP
-addButtonToPage(pages["PVP"], "ล็อคเป้าผู้เล่น (Aimbot)", function(state)
-    print("Aimbot: ", state)
-end)
-addButtonToPage(pages["PVP"], "มองทะลุกำแพงผู้เล่น (ESP Player)", function(state)
-    print("ESP Player: ", state)
-end)
-
--- 6. ข้อมูล
-addLabelToPage(pages["ข้อมูล"], "ผู้ใช้งาน: " .. localPlayer.Name)
-addLabelToPage(pages["ข้อมูล"], "สถานะระบบ: ปกติ (Active)")
-addLabelToPage(pages["ข้อมูล"], "Script Hub Version: 2.0")
 
 -- ==========================================
 -- สร้างปุ่มเมนูด้านซ้าย และระบบสลับหน้าจอ
@@ -291,4 +194,4 @@ end
 -- ตั้งค่าให้ "หน้าแรก" เปิดแสดงผลเป็นหน้าหลักทันที
 pages["หน้าแรก"].Visible = true
 
-print("✅ Mem See Hub Loaded (Home Page Default) Successfully!")
+print("✅ UI Framework Loaded Successfully!")
