@@ -6,14 +6,14 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
 -- ลบ UI เก่าทิ้งก่อน (ถ้ามี)
-local oldGui = playerGui:FindFirstChild("FlexibleMenuGui")
+local oldGui = playerGui:FindFirstChild("KTOHubUniversalGui")
 if oldGui then
     oldGui:Destroy()
 end
 
 -- สร้าง ScreenGui หลัก
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MultiModeMenuGui"
+ScreenGui.Name = "KTOHubUniversalGui"
 ScreenGui.Parent = playerGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
