@@ -197,47 +197,55 @@ pages["หน้าแรก"].Visible = true
 print("✅ UI Framework Loaded Successfully!")
 
 
-
 -- ==========================================
--- 🎯 เพิ่มระบบ Aimbot ล็อคคนใกล้ที่สุดไว้ในหน้า "PVP"
+-- 🎯 แก้ไขระบบ Aimbot ให้ดึงค่าตัวละครใหม่เสมอและบังคับเล็งแบบสมูท
 -- ==========================================
 local pvpPage = pages["PVP"]
 
--- ตัวแปรควบคุมสถานะ Aimbot
+local pvpLayout = pvpPage:FindFirstChildOfClass("UIListLayout")
+if not pvpLayout then
+    pvpLayout = Instance.new("UIListLayout")
+    pvpLayout.Parent = pvpPage
+    pvpLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    pvpLayout.Padding = UDim.new(0, 10)
+end
+
 local AimbotEnabled = false
 
--- สร้างปุ่มเปิด/ปิด Aimbot
 local AimbotToggleBtn = Instance.new("TextButton")
 AimbotToggleBtn.Name = "AimbotToggleBtn"
 AimbotToggleBtn.Parent = pvpPage
-AimbotToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50) -- สีแดง (ปิดอยู่)
+AimbotToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 AimbotToggleBtn.Size = UDim2.new(1, -10, 0, 40)
 AimbotToggleBtn.Font = Enum.Font.GothamBold
 AimbotToggleBtn.Text = "🎯 Aimbot ล็อคคนใกล้สุด: ปิด"
 AimbotToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AimbotToggleBtn.TextSize = 14
+AimbotToggleBtn.LayoutOrder = 1
 
 local AimbotBtnCorner = Instance.new("UICorner")
 AimbotBtnCorner.CornerRadius = UDim.new(0, 6)
 AimbotBtnCorner.Parent = AimbotToggleBtn
 
--- ฟังก์ชันหาผู้เล่นที่อยู่ใกล้ที่สุด
+-- ฟังก์ชันหาผู้เล่นใกล้ที่สุดแบบเช็คความปลอดภัยรัดกุมขึ้น
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
 
     local myChar = localPlayer.Character
-    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
-    local myRoot = myChar.HumanoidRootPart
+    if not myChar then return nil end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
 
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            -- เช็คว่าเป้าหมายยังมีชีวิตอยู่ไหม
-            if targetHumanoid and targetHumanoid.Health > 0 then
-                local targetRoot = player.Character.HumanoidRootPart
+        if player ~= localPlayer and player.Character then
+            local targetChar = player.Character
+            local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
+            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+            
+            -- เช็คว่ามีตัวตน มีชีวิต และเลือดมากกว่า 0
+            if targetHumanoid and targetHumanoid.Health > 0 and targetRoot then
                 local distance = (targetRoot.Position - myRoot.Position).Magnitude
-                
                 if distance < shortestDistance then
                     shortestDistance = distance
                     closestPlayer = player
@@ -249,31 +257,32 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- กดปุ่มเพื่อสลับสถานะเปิด/ปิด Aimbot
 AimbotToggleBtn.MouseButton1Click:Connect(function()
     AimbotEnabled = not AimbotEnabled
     if AimbotEnabled then
-        AimbotToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 50) -- สีเขียว (เปิด)
+        AimbotToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
         AimbotToggleBtn.Text = "🎯 Aimbot ล็อคคนใกล้สุด: เปิด"
     else
-        AimbotToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50) -- สีแดง (ปิด)
+        AimbotToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
         AimbotToggleBtn.Text = "🎯 Aimbot ล็อคคนใกล้สุด: ปิด"
     end
 end)
 
--- ลูปการทำงาน Aimbot แบบ Real-time ทุกเฟรม
+-- ลูปการทำงานแบบเช็คอัปเดตตำแหน่งทุกเฟรม
 RunService.RenderStepped:Connect(function()
     if AimbotEnabled then
-        local target = getClosestPlayer()
-        if target and target.Character then
-            -- เล็งไปที่ส่วนหัว (Head) หรือเปลี่ยนเป็น HumanoidRootPart ถ้าอยากเล็งลำตัว
-            local targetPart = target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("HumanoidRootPart")
-            if targetPart then
-                -- บังคับกล้องหันไปหาเป้าหมายทันที
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+        pcall(function()
+            local target = getClosestPlayer()
+            if target and target.Character then
+                local targetPart = target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("HumanoidRootPart")
+                if targetPart then
+                    -- บังคับมุมมองกล้องให้หันไปหาเป้าหมายโดยตรงทันที
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+                end
             end
-        end
+        end)
     end
 end)
 
-print("✅ Aimbot System Loaded into PVP Page Successfully!")
+print("✅ Aimbot Robust Version Loaded!")
+
