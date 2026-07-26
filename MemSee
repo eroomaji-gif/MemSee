@@ -6,7 +6,7 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
 -- ลบ UI เก่าทิ้งก่อน (ถ้ามี)
-local oldGui = playerGui:FindFirstChild("MultiModeMenuGui")
+local oldGui = playerGui:FindFirstChild("FlexibleMenuGui")
 if oldGui then
     oldGui:Destroy()
 end
