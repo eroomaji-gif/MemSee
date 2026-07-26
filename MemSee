@@ -268,7 +268,7 @@ AimbotToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ลูปการทำงานแบบเช็คอัปเดตตำแหน่งทุกเฟรม
+-- ลูปการทำงาน Aimbot แบบบังคับโหมดกล้อง (วางทับส่วน RunService เดิม)
 RunService.RenderStepped:Connect(function()
     if AimbotEnabled then
         pcall(function()
@@ -276,13 +276,17 @@ RunService.RenderStepped:Connect(function()
             if target and target.Character then
                 local targetPart = target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("HumanoidRootPart")
                 if targetPart then
-                    -- บังคับมุมมองกล้องให้หันไปหาเป้าหมายโดยตรงทันที
+                    -- บังคับเปลี่ยนโหมดกล้องให้ยอมรับการควบคุมจากสคริปต์
+                    Camera.CameraType = Enum.CameraType.Scriptable
+                    -- หันกล้องไปหาเป้าหมาย
                     Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
                 end
             end
         end)
+    else
+        -- ถ้าปิด Aimbot ให้คืนค่ากล้องกลับเป็นปกติ
+        if Camera.CameraType == Enum.CameraType.Scriptable then
+            Camera.CameraType = Enum.CameraType.Custom
+        end
     end
 end)
-
-print("✅ Aimbot Robust Version Loaded!")
-
